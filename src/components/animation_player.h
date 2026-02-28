@@ -32,4 +32,8 @@ struct AnimationPlayer : public Component {
     void initialize() override;
 
     COMPONENT_FACTORY_H(AnimationPlayer)
+
+    float playback_speed { 1.0f };
+    bool loop { true };
+    bool apply_root_motion { true };
 };

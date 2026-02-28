@@ -984,7 +984,7 @@ GPUMeshBuffers Renderer::upload_mesh(std::span<uint32_t> p_indices, std::span<Ve
 GPUMeshBuffers Renderer::upload_mesh(std::span<uint32_t> p_indices, std::span<Vertex> p_vertices) {
     const size_t vertex_buffer_size = p_vertices.size() * sizeof(Vertex);
     const size_t index_buffer_size  = p_indices.size()  * sizeof(uint32_t);
-    
+
     GPUMeshBuffers new_surface;
 
     // Index buffer

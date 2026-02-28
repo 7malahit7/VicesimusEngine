@@ -235,6 +235,11 @@ add_library(prosper SHARED
     src/states/idle.cpp
     src/states/move.cpp
 )
+add_executable(prosper_runner
+        src/runner_main.cpp
+)
+
+target_link_libraries(prosper_runner PRIVATE prosper)
 
 set_property(
   TARGET prosper

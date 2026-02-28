@@ -110,7 +110,7 @@ namespace prosper {
             accumulated_time -= fixed_timestep;
         }
         
-        if (gRenderer.resize_requested || true) {
+        if (gRenderer.resize_requested) {
             gRenderer.recreate_swapchain();
         }
 
@@ -193,7 +193,7 @@ namespace prosper {
     }
 
     bool initialize() {
-        char env[] = "SDL_VIDEODRIVER=wayland";
+        char env[] = "SDL_VIDEODRIVER=x11";
         putenv(env);
         
         // Initialize app

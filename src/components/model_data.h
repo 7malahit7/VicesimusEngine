@@ -25,6 +25,7 @@ struct ModelData : public Component {
     std::string model_path;
     Ref<Skeleton> skeleton;
     AnimationLibrary animation_library {};
+    std::vector<std::shared_ptr<Node>> gltf_nodes;
     bool skinned { false };
     int root_motion_index { -1 };
 
