@@ -47,7 +47,6 @@ static bool read_expected_line(std::fstream& file,
 }
 
 void ModelData::initialize() {
-
     if (model_path.empty())
         return;
 
@@ -128,7 +127,7 @@ void ModelData::initialize() {
     for (uint32_t i = 0; i < material_count; ++i) {
 
         MaterialMetallicRoughness::MaterialConstants constants{};
-        constants.albedo_factors = Vec4(1.0f);
+		constants.albedo_factors = Vec4(1.0f);
         constants.metal_roughness_factors =
             Vec4(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -141,8 +140,46 @@ void ModelData::initialize() {
 
         scene_constants[i] = constants;
 
-        for (int skip = 0; skip < 6; ++skip)
-            std::getline(file, line);
+
+        auto tex = ResourceManager::load<Texture>(
+            "../assets/hair_1.ktx2",
+            vk::Format::eR8G8B8A8Srgb);
+
+		MaterialMetallicRoughness::MaterialResources res {
+
+	.albedo_texture =
+	    tex,
+
+
+    .albedo_sampler =
+        gRenderer.sampler_default_linear,
+
+    .normal_texture =
+        ResourceManager::get<Texture>("::image_default_normal"),
+    .normal_sampler =
+        gRenderer.sampler_default_nearest,
+
+    .metal_roughness_texture =
+        ResourceManager::get<Texture>("::image_white"),
+    .metal_roughness_sampler =
+        gRenderer.sampler_default_linear,
+
+    .data_buffer =
+        material_data_buffer.buffer,
+
+	.data_buffer_offset =
+    	(uint32_t)(i * sizeof(MaterialMetallicRoughness::MaterialConstants))
+	};
+    auto mat =
+        gRenderer.metal_roughness_material.write_material(
+            gRenderer.device,
+            MaterialPass::MainColor,
+            res,
+            descriptor_pool);
+    materials[std::to_string(i)] = std::make_shared<MaterialInstance>(mat);
+
+    for (int skip = 0; skip < 6; ++skip)
+        std::getline(file, line);
     }
 
     if (!read_expected_line(file, line, "Animations")) return;
@@ -200,20 +237,20 @@ void ModelData::initialize() {
             animation;
     }
 
-if (!read_expected_line(file, line, "Meshes")) return;
-std::getline(file, line);
-uint32_t mesh_count = std::stoi(line);
+	if (!read_expected_line(file, line, "Meshes")) return;
+	std::getline(file, line);
+	uint32_t mesh_count = std::stoi(line);
 
-for (uint32_t mi = 0; mi < mesh_count; ++mi) {
+	for (uint32_t mi = 0; mi < mesh_count; ++mi) {
 
-    read_expected_line(file, line, "Mesh");
-    std::getline(file, line); // mesh name (unused)
+    	read_expected_line(file, line, "Mesh");
+    	std::getline(file, line); // mesh name (unused)
 
-    auto mesh_id  = std::format("mesh_{}", mi);
-    auto mesh_guid =
-        std::format("{}::/meshes/{}",
-                    imported_path,
-                    mesh_id);
+    	auto mesh_id  = std::format("mesh_{}", mi);
+    	auto mesh_guid =
+        	std::format("{}::/meshes/{}",
+            imported_path,
+            mesh_id);
 
     auto mesh_ref =
         ResourceManager::get<Mesh>(
@@ -238,7 +275,6 @@ for (uint32_t mi = 0; mi < mesh_count; ++mi) {
         std::getline(file, line);
         int material_index =
             std::stoi(line);
-
         std::shared_ptr<MaterialInstance> mat =
             materials["default"];
 
@@ -249,7 +285,6 @@ for (uint32_t mi = 0; mi < mesh_count; ++mi) {
             if (it != materials.end())
                 mat = it->second;
         }
-
         mesh_res->surfaces.emplace_back(
             MeshSurface{
                 start_index,

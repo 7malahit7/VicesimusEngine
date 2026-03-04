@@ -647,19 +647,22 @@ void import_gltf_scene(Renderer* p_renderer, std::filesystem::path p_file_path) 
                 fastgltf::Accessor& position_accessor = asset.accessors[primitive.findAttribute("POSITION")->accessorIndex];
                 vertices.resize(vertices.size() + position_accessor.count);
 
-                fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, position_accessor,
-                    [&](glm::vec3 vector, size_t index) {
-                        Vertex v{
-                            .position = vector,
-                            .uv_x = 0.0f,
-                            .normal = {1.0f, 0.0f, 0.0f},
-                            .uv_y = 0.0f,
-                            .color = Vec4(1.0f),
-                        };
-                        vertices[initial_vertex_index + index] = v;
-                    }
-                );
-            }
+				bool has_uv = primitive.findAttribute("TEXCOORD_0") != primitive.attributes.end();
+
+fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, position_accessor,
+[&](glm::vec3 vector, size_t index) {
+
+    Vertex vert{
+        .position = vector,
+        .uv_x = vector.x * 0.1f,
+        .normal = {1.0f, 0.0f, 0.0f},
+        .uv_y = vector.z * 0.1f,
+        .color = Vec4(1.0f),
+    };
+
+    vertices[initial_vertex_index + index] = vert;
+});
+}
 
             // Normals
             auto normals = primitive.findAttribute("NORMAL");
@@ -777,27 +780,26 @@ void import_gltf_scene(Renderer* p_renderer, std::filesystem::path p_file_path) 
         if (!skinning_data.empty()) file.write(reinterpret_cast<char*>(skinning_data.data()), skinning_data.size() * sizeof(SkinningData));
         if (!joint_data.empty())    file.write(reinterpret_cast<char*>(joint_data.data()),    joint_data.size() * sizeof(JointData));
     }
-// ---- Nodes (nodeIndex -> parentIndex, meshIndex, localMatrix 4x4) ----
-file << "Nodes\n";
-file << asset.nodes.size() << "\n";
+	// ---- Nodes (nodeIndex -> parentIndex, meshIndex, localMatrix 4x4) ----
+	file << "Nodes\n";
+	file << asset.nodes.size() << "\n";
 
-// Сначала построим parentIndex для каждой ноды
-std::vector<int> parent_index(asset.nodes.size(), -1);
-for (size_t p = 0; p < asset.nodes.size(); ++p) {
-    for (auto c : asset.nodes[p].children) {
-        if (c < parent_index.size())
-            parent_index[c] = (int)p;
-    }
-}
+	std::vector<int> parent_index(asset.nodes.size(), -1);
+	for (size_t p = 0; p < asset.nodes.size(); ++p) {
+    	for (auto c : asset.nodes[p].children) {
+        	if (c < parent_index.size())
+        	    parent_index[c] = (int)p;
+    	}
+	}
 
-for (size_t ni = 0; ni < asset.nodes.size(); ++ni) {
-    auto& n = asset.nodes[ni];
+	for (size_t ni = 0; ni < asset.nodes.size(); ++ni) {
+    	auto& n = asset.nodes[ni];
 
-    int mesh_index = n.meshIndex.has_value() ? (int)n.meshIndex.value() : -1;
-    file << parent_index[ni] << "\n";
-    file << mesh_index << "\n";
+    	int mesh_index = n.meshIndex.has_value() ? (int)n.meshIndex.value() : -1;
+    	file << parent_index[ni] << "\n";
+    	file << mesh_index << "\n";
 
-    // local matrix: TRS or matrix
+    	// local matrix: TRS or matrix
     glm::mat4 M(1.0f);
     if (std::holds_alternative<fastgltf::TRS>(n.transform)) {
         auto trs = std::get<fastgltf::TRS>(n.transform);

@@ -13,7 +13,12 @@ void AnimationPlayer::update(double delta) {
         }
 
         updating = true;
-        auto animation = library.animations[current_animation];
+        auto it = library.animations.find(current_animation);
+		if (!playing || it == library.animations.end()) {
+    		updating = false;
+    		return;
+		}
+		const Animation &animation = it->second;
 
         current_time += float(delta);
         if (animation.length > 0.0f && current_time >= animation.length) {
@@ -161,12 +166,12 @@ void AnimationPlayer::update(double delta) {
 
     updating = true;
 
-    if (!playing || library.animations.find(current_animation) == library.animations.end()) {
-        updating = false;
-        return;
-    }
-
-    auto animation = library.animations[current_animation];
+	auto it = library.animations.find(current_animation);
+	if (!playing || it == library.animations.end()) {
+	    updating = false;
+    	return;
+	}
+	const Animation &animation = it->second;
 
     current_time = current_time + float(delta);
     bool looped = current_time >= animation.length;
@@ -360,12 +365,17 @@ void AnimationPlayer::play(std::string p_animation_name) {
         playing = false;
         return;
     }
-    auto animation = library.animations[current_animation];
+	auto it = library.animations.find(current_animation);
+	if (it == library.animations.end()) {
+    	playing = false;
+    	return;
+	}
+	const Animation &animation = it->second;
 
-    for (auto& kv : animation.channels) {
-        channel_position_index[kv.first] = 0;
-        channel_rotation_index[kv.first] = 0;
-    }
+	for (const auto &kv : animation.channels) {
+    	channel_position_index[kv.first] = 0;
+    	channel_rotation_index[kv.first] = 0;
+	}
 
     current_time = 0.0f;
     playing = true;
