@@ -141,15 +141,9 @@ void ModelData::initialize() {
         scene_constants[i] = constants;
 
 
-        auto tex = ResourceManager::load<Texture>(
-            "../assets/hair_1.ktx2",
-            vk::Format::eR8G8B8A8Srgb);
-
 		MaterialMetallicRoughness::MaterialResources res {
 
-	.albedo_texture =
-	    tex,
-
+	.albedo_texture = ResourceManager::get<Texture>("::image_white"),
 
     .albedo_sampler =
         gRenderer.sampler_default_linear,

@@ -25,6 +25,7 @@
 #include <components/skeleton.h>
 #include <components/physics/rigid_body.h>
 #include <components/physics/static_body.h>
+#include <components/bone_container.h>
 
 #include <resources/scene.h>
 
@@ -50,6 +51,8 @@ Ref<Node> player;
 std::thread physics_worker;
 static bool engine_running { false };
 
+std::shared_ptr<BoneContainer> bone_container = nullptr;
+
 namespace prosper {
     double accumulated_time = 0;
     constexpr double fixed_timestep = 1.0 / 60.0;
@@ -65,7 +68,7 @@ namespace prosper {
         }
 
         if (event->type == SDL_EVENT_WINDOW_RESIZED) {
-            gRenderer.recreate_swapchain();
+            gRenderer.resize_requested = true;
         }
 
         if (event->type == SDL_EVENT_KEY_DOWN) {
@@ -148,6 +151,80 @@ namespace prosper {
             ImGui::Text("Exit: Alt+F4");
         }
         ImGui::End();
+
+        static int bone_id = 0;
+        static bool pause_animation = true;
+
+        if (ImGui::Begin("Bone Editor"))
+        {
+            std::shared_ptr<ModelData> md = nullptr;
+            std::shared_ptr<AnimationPlayer> ap = nullptr;
+
+            for (auto& child : scene.root->children)
+            {
+                md = child->get_component<ModelData>();
+                if (md)
+                {
+                    ap = child->get_component<AnimationPlayer>();
+                    break;
+                }
+            }
+
+            if (md && !bone_container)
+            {
+                bone_container = std::make_shared<BoneContainer>();
+                bone_container->load_from_model(md);
+            }
+
+            ImGui::InputInt("bone id", &bone_id);
+            ImGui::Checkbox("Pause animation", &pause_animation);
+
+            if (pause_animation && ap)
+                ap->playing = false;
+
+            if (bone_container && bone_id >= 0 && bone_id < bone_container->size())
+            {
+                auto bone = bone_container->get(bone_id);
+
+                ImGui::Separator();
+
+                ImGui::Text("Bone");
+                ImGui::Text("id: %d", bone_id);
+
+                Vec3 pos = bone->get_position();
+                Vec3 rot = glm::degrees(glm::eulerAngles(bone->get_rotation()));
+                float scale = bone->get_scale();
+
+                if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    if (ImGui::DragFloat3("position", &pos.x, 0.01f))
+                        bone->set_position(pos);
+
+                    if (ImGui::DragFloat3("rotation", &rot.x, 0.5f))
+                    {
+                        rot = glm::clamp(rot, Vec3(-360.0f), Vec3(360.0f));
+
+                        glm::quat q = glm::quat(glm::radians(rot));
+
+                        if (std::isfinite(q.x) &&
+                            std::isfinite(q.y) &&
+                            std::isfinite(q.z) &&
+                            std::isfinite(q.w))
+                        {
+                            bone->set_rotation(q);
+                            bone->refresh_transform(Transform());
+                        }
+                    }
+
+                    if (ImGui::DragFloat("scale", &scale, 0.01f))
+                        bone->set_scale(scale);
+
+                    bone->refresh_transform(Transform());
+                }
+            }
+        }
+        ImGui::End();
+
 
         if (Collectible::total_count > 0) {
             if (ImGui::Begin("Collectibles")) {
